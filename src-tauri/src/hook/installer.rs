@@ -43,11 +43,9 @@ fn update_settings(settings_path: &PathBuf) {
     };
 
     let python = detect_python();
-
-    #[cfg(target_os = "windows")]
-    let command = format!("{} %USERPROFILE%\\.claude\\hooks\\codeisland-state.py", python);
-    #[cfg(not(target_os = "windows"))]
-    let command = format!("{} ~/.claude/hooks/codeisland-state.py", python);
+    let home = dirs::home_dir().expect("无法获取 home 目录");
+    let script_path = home.join(".claude").join("hooks").join("codeisland-state.py");
+    let command = format!("{} {}", python, script_path.display());
 
     let hook_entry = serde_json::json!([{"type": "command", "command": command}]);
     let hook_entry_timeout = serde_json::json!([{"type": "command", "command": command, "timeout": 86400}]);
