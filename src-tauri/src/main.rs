@@ -10,6 +10,9 @@ mod sound;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::{Emitter, Manager};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
+use tauri::image::Image;
 
 fn main() {
     env_logger::init();
@@ -89,6 +92,43 @@ fn main() {
                     ));
                 }
             }
+
+            // 系统托盘
+            let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "退出 Code Island", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let tray_icon = Image::from_bytes(include_bytes!("../icons/32x32.png"))
+                .expect("无法加载托盘图标");
+
+            let _tray = TrayIconBuilder::new()
+                .icon(tray_icon)
+                .tooltip("Code Island")
+                .menu(&menu)
+                .on_menu_event(move |app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("island") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            hook::installer::uninstall();
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
+                        if let Some(window) = tray.app_handle().get_webview_window("island") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
 
             Ok(())
         })
