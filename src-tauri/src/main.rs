@@ -77,6 +77,19 @@ fn main() {
                 }
             });
 
+            // 窗口定位：顶部居中
+            if let Some(window) = app.get_webview_window("island") {
+                if let Ok(Some(monitor)) = window.current_monitor() {
+                    let screen_size = monitor.size();
+                    let scale = monitor.scale_factor();
+                    let window_width = 400.0;
+                    let x = (screen_size.width as f64 / scale - window_width) / 2.0;
+                    let _ = window.set_position(tauri::Position::Logical(
+                        tauri::LogicalPosition::new(x, 0.0),
+                    ));
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -25,6 +25,12 @@
 .island.expanded { width: 380px; height: auto; max-height: 80vh; border-radius: var(--radius); }
 .island-expanded { display: none; padding: 8px; }
 .island.expanded .island-expanded { display: block; }
+.expanded-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px 4px; cursor: grab;
+}
+.expanded-header:active { cursor: grabbing; }
+.header-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .island.alert { animation: pulse-glow 1.5s ease-in-out infinite; }
 
 @keyframes pulse-glow {

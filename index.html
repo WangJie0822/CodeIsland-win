@@ -8,13 +8,16 @@
   <link rel="stylesheet" href="/src/styles/island.css" />
 </head>
 <body>
-  <div id="island" class="island collapsed" data-tauri-drag-region>
-    <div id="island-collapsed" class="island-collapsed">
+  <div id="island" class="island collapsed">
+    <div id="island-collapsed" class="island-collapsed" data-tauri-drag-region>
       <span class="status-dot"></span>
       <span class="session-count">0 sessions</span>
       <span class="status-label">idle</span>
     </div>
     <div id="island-expanded" class="island-expanded">
+      <div id="expanded-header" class="expanded-header" data-tauri-drag-region>
+        <span class="header-title">Code Island</span>
+      </div>
       <div id="session-list"></div>
     </div>
   </div>
