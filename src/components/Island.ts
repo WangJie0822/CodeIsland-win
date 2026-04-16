@@ -1,3 +1,4 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { store } from "../store";
 import { createSessionCard } from "./SessionCard";
 import { createStatusDot } from "./StatusIndicator";
@@ -19,6 +20,17 @@ export function initIsland() {
   island.addEventListener("mouseleave", () => {
     collapseTimer = window.setTimeout(() => { store.setExpanded(false); }, 300);
   });
+
+  const expandedHeader = document.getElementById("expanded-header")!;
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "btn-close";
+  closeBtn.textContent = "\u00d7";
+  closeBtn.title = "隐藏窗口";
+  closeBtn.onclick = async (e) => {
+    e.stopPropagation();
+    await getCurrentWindow().hide();
+  };
+  expandedHeader.appendChild(closeBtn);
 
   store.subscribe(render);
 }

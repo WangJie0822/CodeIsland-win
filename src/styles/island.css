@@ -93,3 +93,12 @@
 }
 
 .empty-state { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 12px; }
+
+.btn-close {
+  width: 20px; height: 20px; border: none; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1); color: var(--text-secondary);
+  font-size: 14px; line-height: 20px; text-align: center;
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+  padding: 0; flex-shrink: 0;
+}
+.btn-close:hover { background: var(--accent-red); color: white; }
