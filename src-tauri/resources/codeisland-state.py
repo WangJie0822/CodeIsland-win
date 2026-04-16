@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Code Island Hook (Windows + macOS)
-- Windows: Named Pipe (\\.\pipe\codeisland)
+- Windows: Named Pipe
 - macOS/Linux: Unix Socket (/tmp/codeisland.sock)
 - PermissionRequest 时阻塞等待用户决策
 """
@@ -14,6 +14,19 @@ TIMEOUT_SECONDS = 300
 IS_WINDOWS = platform.system() == "Windows"
 PIPE_PATH = r"\\.\pipe\codeisland"
 SOCKET_PATH = "/tmp/codeisland.sock"
+
+
+def is_server_running():
+    """探测 Code Island IPC 服务是否可达"""
+    if IS_WINDOWS:
+        try:
+            handle = open(PIPE_PATH, "r+b", buffering=0)
+            handle.close()
+            return True
+        except OSError:
+            return False
+    else:
+        return os.path.exists(SOCKET_PATH)
 
 
 def send_event(state):
@@ -77,6 +90,9 @@ def _send_via_socket(state):
 
 
 def main():
+    if not is_server_running():
+        sys.exit(0)
+
     try:
         data = json.load(sys.stdin)
     except json.JSONDecodeError:
