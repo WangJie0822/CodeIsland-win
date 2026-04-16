@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Island</title>
+  <link rel="stylesheet" href="/src/styles/theme.css" />
+  <link rel="stylesheet" href="/src/styles/island.css" />
+</head>
+<body>
+  <div id="island" class="island collapsed" data-tauri-drag-region>
+    <div id="island-collapsed" class="island-collapsed">
+      <span class="status-dot"></span>
+      <span class="session-count">0 sessions</span>
+      <span class="status-label">idle</span>
+    </div>
+    <div id="island-expanded" class="island-expanded">
+      <div id="session-list"></div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
