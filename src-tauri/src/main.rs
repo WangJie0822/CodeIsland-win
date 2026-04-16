@@ -2,6 +2,8 @@
 
 mod hook;
 mod session;
+mod terminal;
+mod sound;
 
 fn main() {
     tauri::Builder::default()
