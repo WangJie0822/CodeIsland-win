@@ -1,9 +1,12 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use log::{info, warn, error};
 use crate::hook::protocol::{HookEvent, HookResponse};
 use crate::session::store::SessionStore;
+
+pub const PIPE_NAME: &str = r"\\.\pipe\codeisland";
 
 pub struct HookServer {
     store: Arc<Mutex<SessionStore>>,
@@ -35,24 +38,12 @@ impl HookServer {
     }
 
     pub async fn start(&self) {
-        #[cfg(target_os = "windows")]
-        self.start_named_pipe().await;
-
-        #[cfg(not(target_os = "windows"))]
-        self.start_unix_socket().await;
-    }
-
-    #[cfg(target_os = "windows")]
-    async fn start_named_pipe(&self) {
-        use tokio::net::windows::named_pipe::ServerOptions;
-
-        let pipe_name = r"\\.\pipe\codeisland";
-        info!("[PipeServer] 启动 Named Pipe: {}", pipe_name);
+        info!("[PipeServer] 启动 Named Pipe: {}", PIPE_NAME);
 
         loop {
             let server = match ServerOptions::new()
                 .first_pipe_instance(false)
-                .create(pipe_name)
+                .create(PIPE_NAME)
             {
                 Ok(s) => s,
                 Err(e) => {
@@ -76,51 +67,14 @@ impl HookServer {
             });
         }
     }
-
-    #[cfg(not(target_os = "windows"))]
-    async fn start_unix_socket(&self) {
-        use tokio::net::UnixListener;
-
-        let socket_path = "/tmp/codeisland.sock";
-        let _ = std::fs::remove_file(socket_path);
-
-        let listener = match UnixListener::bind(socket_path) {
-            Ok(l) => l,
-            Err(e) => {
-                error!("[PipeServer] 绑定 Unix socket 失败: {}", e);
-                return;
-            }
-        };
-
-        info!("[PipeServer] 启动 Unix Socket: {}", socket_path);
-
-        loop {
-            match listener.accept().await {
-                Ok((stream, _)) => {
-                    let store = self.store.clone();
-                    let pending = self.pending.clone();
-                    let event_tx = self.event_tx.clone();
-
-                    tokio::spawn(async move {
-                        handle_connection(stream, store, pending, event_tx).await;
-                    });
-                }
-                Err(e) => {
-                    error!("[PipeServer] accept 失败: {}", e);
-                }
-            }
-        }
-    }
 }
 
-async fn handle_connection<S>(
-    mut stream: S,
+async fn handle_connection(
+    mut stream: NamedPipeServer,
     store: Arc<Mutex<SessionStore>>,
     pending: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<HookResponse>>>>,
     event_tx: tokio::sync::broadcast::Sender<String>,
-) where
-    S: AsyncReadExt + AsyncWriteExt + Unpin,
-{
+) {
     let mut buf = vec![0u8; 65536];
     let n = match stream.read(&mut buf).await {
         Ok(0) => return,
@@ -162,7 +116,11 @@ async fn handle_connection<S>(
             Ok(Ok(response)) => {
                 let json = serde_json::to_vec(&response).unwrap_or_default();
                 let _ = stream.write_all(&json).await;
-                info!("[PipeServer] 已回复审批: {} → {}", &session_id[..8.min(session_id.len())], response.decision);
+                info!(
+                    "[PipeServer] 已回复审批: {} → {}",
+                    &session_id[..8.min(session_id.len())],
+                    response.decision
+                );
             }
             _ => {
                 warn!("[PipeServer] 审批超时: {}", &session_id[..8.min(session_id.len())]);
@@ -172,5 +130,27 @@ async fn handle_connection<S>(
         }
     } else {
         let _ = stream.write_all(b"ok\n").await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pipe_name_constant() {
+        assert_eq!(PIPE_NAME, r"\\.\pipe\codeisland");
+    }
+
+    #[test]
+    fn test_pipe_server_is_windows_only() {
+        // 避免 include_str! 自引用——把 needle 拆成两段字面量，编译期合并、源码搜索不命中
+        let src = include_str!("pipe_server.rs");
+        let unix_listener = concat!("Unix", "Listener");
+        let cross_cfg = concat!("cfg(not(", "target_os");
+        let unix_sock = concat!("/tmp/cod", "eisland.sock");
+        assert!(!src.contains(unix_listener), "Unix 分支残留");
+        assert!(!src.contains(cross_cfg), "跨平台 cfg 残留");
+        assert!(!src.contains(unix_sock), "Unix socket 路径残留");
     }
 }

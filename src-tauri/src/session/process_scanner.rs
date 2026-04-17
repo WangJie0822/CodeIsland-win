@@ -1,4 +1,6 @@
-use log::{debug, warn};
+use log::warn;
+use windows::Win32::Foundation::CloseHandle;
+use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
 
 #[derive(Debug, Clone)]
 pub struct ClaudeProcess {
@@ -8,64 +10,50 @@ pub struct ClaudeProcess {
     pub terminal_type: Option<String>,
 }
 
+/// Stage 0 保留空实现；Stage 1 `buddy` / `usage` 模块如需扫描 claude 进程，
+/// 在 Win32 ToolHelp32Snapshot 基础上扩展，详见 spec §10.1。
 pub fn scan_claude_processes() -> Vec<ClaudeProcess> {
-    #[cfg(target_os = "windows")]
-    return scan_windows();
-    #[cfg(not(target_os = "windows"))]
-    return scan_unix();
-}
-
-pub fn is_process_alive(pid: u32) -> bool {
-    #[cfg(target_os = "windows")]
-    {
-        // Win32 OpenProcess check
-        false // stub on macOS build
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::path::Path::new(&format!("/proc/{}", pid)).exists()
-            || std::process::Command::new("kill")
-                .args(["-0", &pid.to_string()])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .map(|s| s.success())
-                .unwrap_or(false)
-    }
-}
-
-#[cfg(target_os = "windows")]
-fn scan_windows() -> Vec<ClaudeProcess> {
-    // Win32 CreateToolhelp32Snapshot implementation
-    // Only compiles on Windows
     Vec::new()
 }
 
-#[cfg(not(target_os = "windows"))]
-fn scan_unix() -> Vec<ClaudeProcess> {
-    let output = std::process::Command::new("ps")
-        .args(["-Ax", "-o", "pid,command"])
-        .output()
-        .ok();
-
-    let mut results = Vec::new();
-    if let Some(output) = output {
-        let text = String::from_utf8_lossy(&output.stdout);
-        for line in text.lines() {
-            if line.contains("claude") && !line.contains("grep") {
-                let parts: Vec<&str> = line.trim().splitn(2, ' ').collect();
-                if let Some(pid_str) = parts.first() {
-                    if let Ok(pid) = pid_str.trim().parse::<u32>() {
-                        results.push(ClaudeProcess {
-                            pid,
-                            cwd: None,
-                            parent_pid: None,
-                            terminal_type: None,
-                        });
-                    }
+pub fn is_process_alive(pid: u32) -> bool {
+    unsafe {
+        match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
+            Ok(handle) if !handle.is_invalid() => {
+                if let Err(e) = CloseHandle(handle) {
+                    warn!("[ProcessScanner] CloseHandle 失败: {:?}", e);
                 }
+                true
             }
+            _ => false,
         }
     }
-    results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_current_process_alive() {
+        let pid = std::process::id();
+        assert!(is_process_alive(pid));
+    }
+
+    #[test]
+    fn test_nonexistent_process_not_alive() {
+        assert!(!is_process_alive(999_999_999));
+    }
+
+    #[test]
+    fn test_process_scanner_is_windows_only() {
+        // 避免 include_str! 自引用——把 needle 拆成两段字面量，编译期合并、源码搜索不命中
+        let src = include_str!("process_scanner.rs");
+        let forbidden_fn = concat!("scan", "_unix");
+        let cross_cfg = concat!("cfg(not(", "target_os");
+        let proc_path = concat!("/pr", "oc/");
+        assert!(!src.contains(forbidden_fn), "unix scanner 残留");
+        assert!(!src.contains(cross_cfg), "跨平台 cfg 残留");
+        assert!(!src.contains(proc_path), "/proc 路径残留");
+    }
 }
