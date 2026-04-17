@@ -3,6 +3,7 @@
 mod app_state;
 mod commands;
 mod hook;
+mod presets;
 mod session;
 mod terminal;
 mod sound;
