@@ -23,7 +23,7 @@ export async function invokeSendToTerminal(sessionId: string, text: string): Pro
 }
 
 export async function onSessionsUpdated(callback: () => void): Promise<UnlistenFn> {
-  return listen("sessions-updated", callback);
+  return listen("codeisland:sessions:updated", callback);
 }
 
 export async function invokeSetIgnoreCursorEvents(enabled: boolean): Promise<void> {

@@ -20,7 +20,8 @@ fn main() {
 
     tauri::Builder::default()
         .setup(|app| {
-            let (event_tx, _) = tokio::sync::broadcast::channel::<String>(256);
+            let (event_tx, _) =
+                tokio::sync::broadcast::channel::<app_state::AppEvent>(256);
 
             let store = Arc::new(Mutex::new(session::store::SessionStore::new()));
             let hook_server = Arc::new(hook::pipe_server::HookServer::new(
@@ -38,17 +39,14 @@ fn main() {
 
             app.manage(state);
 
-            // 安装 hook 脚本
             let script_bytes = include_bytes!("../resources/codeisland-state.py");
             hook::installer::install_if_needed(script_bytes);
 
-            // 启动 Hook IPC 服务
             let server = hook_server.clone();
             tauri::async_runtime::spawn(async move {
                 server.start().await;
             });
 
-            // 启动 JSONL 监听定时扫描
             let store_for_jsonl = store.clone();
             let event_tx_for_jsonl = event_tx.clone();
             tauri::async_runtime::spawn(async move {
@@ -62,7 +60,6 @@ fn main() {
                 }
             });
 
-            // 启动进程存活检查
             let store_for_proc = store.clone();
             tauri::async_runtime::spawn(async move {
                 loop {
@@ -72,16 +69,14 @@ fn main() {
                 }
             });
 
-            // 监听 broadcast 事件，转发到前端
             let app_handle = app.handle().clone();
             let mut event_rx = event_tx.subscribe();
             tauri::async_runtime::spawn(async move {
-                while let Ok(_session_id) = event_rx.recv().await {
-                    let _ = app_handle.emit("sessions-updated", ());
+                while let Ok(event) = event_rx.recv().await {
+                    let _ = app_handle.emit(event.topic(), ());
                 }
             });
 
-            // 窗口定位：顶部居中
             if let Some(window) = app.get_webview_window("island") {
                 if let Ok(Some(monitor)) = window.current_monitor() {
                     let screen_size = monitor.size();
@@ -94,9 +89,15 @@ fn main() {
                 }
             }
 
-            // 系统托盘
-            let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "退出 Code Island", true, None::<&str>)?;
+            let show_item =
+                MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(
+                app,
+                "quit",
+                "退出 Code Island",
+                true,
+                None::<&str>,
+            )?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
             let tray_icon = Image::from_bytes(include_bytes!("../icons/32x32.png"))
@@ -106,24 +107,24 @@ fn main() {
                 .icon(tray_icon)
                 .tooltip("Code Island")
                 .menu(&menu)
-                .on_menu_event(move |app, event| {
-                    match event.id.as_ref() {
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("island") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                .on_menu_event(move |app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("island") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
                         }
-                        "quit" => {
-                            hook::installer::uninstall();
-                            app.exit(0);
-                        }
-                        _ => {}
                     }
+                    "quit" => {
+                        hook::installer::uninstall();
+                        app.exit(0);
+                    }
+                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
-                        if let Some(window) = tray.app_handle().get_webview_window("island") {
+                        if let Some(window) =
+                            tray.app_handle().get_webview_window("island")
+                        {
                             let _ = window.show();
                             let _ = window.set_focus();
                         }

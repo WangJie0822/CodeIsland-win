@@ -3,6 +3,7 @@ use tokio::sync::Mutex;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use log::{info, warn, error};
+use crate::app_state::AppEvent;
 use crate::hook::protocol::{HookEvent, HookResponse};
 use crate::session::store::SessionStore;
 
@@ -11,13 +12,13 @@ pub const PIPE_NAME: &str = r"\\.\pipe\codeisland";
 pub struct HookServer {
     store: Arc<Mutex<SessionStore>>,
     pending: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<HookResponse>>>>,
-    event_tx: tokio::sync::broadcast::Sender<String>,
+    event_tx: tokio::sync::broadcast::Sender<AppEvent>,
 }
 
 impl HookServer {
     pub fn new(
         store: Arc<Mutex<SessionStore>>,
-        event_tx: tokio::sync::broadcast::Sender<String>,
+        event_tx: tokio::sync::broadcast::Sender<AppEvent>,
     ) -> Self {
         Self {
             store,
@@ -73,7 +74,7 @@ async fn handle_connection(
     mut stream: NamedPipeServer,
     store: Arc<Mutex<SessionStore>>,
     pending: Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<HookResponse>>>>,
-    event_tx: tokio::sync::broadcast::Sender<String>,
+    event_tx: tokio::sync::broadcast::Sender<AppEvent>,
 ) {
     let mut buf = vec![0u8; 65536];
     let n = match stream.read(&mut buf).await {
@@ -101,7 +102,7 @@ async fn handle_connection(
         store.process_hook_event(&event);
     }
 
-    let _ = event_tx.send(session_id.clone());
+    let _ = event_tx.send(AppEvent::SessionsUpdated);
 
     if expects_response {
         let (tx, rx) = tokio::sync::oneshot::channel::<HookResponse>();

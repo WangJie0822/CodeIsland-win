@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use log::{info, debug};
+use crate::app_state::AppEvent;
 use crate::session::state::ConversationInfo;
 use crate::session::store::SessionStore;
 
@@ -16,7 +17,7 @@ struct ParseState {
 
 pub struct JsonlWatcher {
     store: Arc<Mutex<SessionStore>>,
-    event_tx: tokio::sync::broadcast::Sender<String>,
+    event_tx: tokio::sync::broadcast::Sender<AppEvent>,
     states: HashMap<String, ParseState>,
     paths: HashMap<String, PathBuf>,
 }
@@ -24,7 +25,7 @@ pub struct JsonlWatcher {
 impl JsonlWatcher {
     pub fn new(
         store: Arc<Mutex<SessionStore>>,
-        event_tx: tokio::sync::broadcast::Sender<String>,
+        event_tx: tokio::sync::broadcast::Sender<AppEvent>,
     ) -> Self {
         Self { store, event_tx, states: HashMap::new(), paths: HashMap::new() }
     }
@@ -93,7 +94,7 @@ impl JsonlWatcher {
             let mut store = self.store.lock().await;
             store.update_conversation_info(session_id, info);
         }
-        let _ = self.event_tx.send(session_id.to_string());
+        let _ = self.event_tx.send(AppEvent::SessionsUpdated);
     }
 
     pub async fn scan_all(&mut self) {
