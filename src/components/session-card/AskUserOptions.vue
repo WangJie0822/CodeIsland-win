@@ -8,7 +8,7 @@ import { useSessionsStore } from '@/stores/sessions';
 
 const props = defineProps<{
   sessionId: string;
-  toolInput: Record<string, unknown> | null;
+  toolInput: unknown;
 }>();
 
 const sessions = useSessionsStore();
