@@ -1,0 +1,93 @@
+/**
+ * pixel.css — 像素艺术专属 CSS token
+ * 覆盖 theme.css 中的占位值，并扩充像素专用 token。
+ * 此文件不修改 theme.css，通过 :root 覆盖优先级更高的同名变量。
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  /* ── 字体 ─────────────────────────────────────────────────── */
+  /* 覆盖 theme.css 中的 --font-pixel 占位值 */
+  --font-pixel: "Press Start 2P", "Cascadia Code", "Courier New", monospace;
+
+  /* ── 像素缩放 ──────────────────────────────────────────────── */
+  /** 像素单元格大小（每"格"渲染的 CSS 像素数），用于 scale 系列组件 */
+  --pixel-scale: 2;
+
+  /* ── 像素颜色 token ─────────────────────────────────────────── */
+  /** 像素组件默认前景色（NeonPixelCat / ProcessingSpinner 等） */
+  --pixel-tint-default: var(--accent-green);
+  /** 像素组件高亮色（警觉/审批等状态） */
+  --pixel-tint-alert: var(--accent-yellow);
+  /** 像素组件禁用/次要色 */
+  --pixel-tint-muted: var(--text-tertiary);
+  /** 像素组件强调色（处理中状态） */
+  --pixel-tint-processing: var(--accent-blue);
+
+  /* ── 像素动画 token ─────────────────────────────────────────── */
+  /** 标准逐帧动画时长（4 帧循环基准） */
+  --pixel-anim-dur: 600ms;
+  /** 快速逐帧（2 帧闪烁） */
+  --pixel-anim-dur-fast: 400ms;
+  /** 慢速逐帧（伸懒腰节奏） */
+  --pixel-anim-dur-slow: 1200ms;
+  /** 像素动画时间函数（逐帧，无缓动） */
+  --pixel-timing: steps(1, end);
+
+  /* ── 像素背景/边框 token ─────────────────────────────────────── */
+  /** 像素卡片背景 */
+  --pixel-bg: var(--bg-secondary);
+  /** 像素边框（1px 硬边框，无圆角） */
+  --pixel-border: 1px solid rgba(255, 255, 255, 0.12);
+  /** 像素卡片无圆角（像素风格强调方块感） */
+  --pixel-radius: 0px;
+
+  /* ── ASCII 艺术 token ────────────────────────────────────────── */
+  /** ASCII 默认字号 */
+  --pixel-ascii-size: 10px;
+  /** ASCII 行高 */
+  --pixel-ascii-line-height: 1.2;
+}
+
+/**
+ * 像素图像渲染：凡使用像素艺术组件的容器，
+ * 确保 image-rendering 向下继承（组件内部也单独设置，双保险）。
+ */
+.pixel-container,
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/**
+ * 像素字体辅助类 —— 直接使用像素字体
+ */
+.pixel-font {
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-ascii-size);
+  line-height: var(--pixel-ascii-line-height);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+}
+
+/**
+ * 像素风格徽章（显示 Rarity / 状态等）
+ */
+.pixel-badge {
+  display: inline-block;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 2px 4px;
+  border: var(--pixel-border);
+  border-radius: var(--pixel-radius);
+  color: var(--text-primary);
+  background: var(--pixel-bg);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pixel-badge--legendary { color: var(--accent-yellow); border-color: var(--accent-yellow); }
+.pixel-badge--epic      { color: var(--accent-purple); border-color: var(--accent-purple); }
+.pixel-badge--rare      { color: var(--accent-blue);   border-color: var(--accent-blue); }
+.pixel-badge--common    { color: var(--text-secondary); }
