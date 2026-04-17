@@ -1,42 +1,28 @@
 #!/usr/bin/env python3
-"""
-Code Island Hook (Windows + macOS)
-- Windows: Named Pipe
-- macOS/Linux: Unix Socket (/tmp/codeisland.sock)
-- PermissionRequest 时阻塞等待用户决策
-"""
+"""Code Island Hook (Windows 专属)。
+
+通过 Named Pipe `\\\\.\\pipe\\codeisland` 与 Tauri 后端通信；PermissionRequest 时
+阻塞等待后端决策，其他事件只上报。"""
 import json
 import os
-import platform
 import sys
 
 TIMEOUT_SECONDS = 300
-IS_WINDOWS = platform.system() == "Windows"
 PIPE_PATH = r"\\.\pipe\codeisland"
-SOCKET_PATH = "/tmp/codeisland.sock"
 
 
-def is_server_running():
-    """探测 Code Island IPC 服务是否可达"""
-    if IS_WINDOWS:
-        try:
-            handle = open(PIPE_PATH, "r+b", buffering=0)
-            handle.close()
-            return True
-        except OSError:
-            return False
-    else:
-        return os.path.exists(SOCKET_PATH)
+def is_server_running() -> bool:
+    """探测 Code Island Named Pipe 是否可连接。"""
+    try:
+        handle = open(PIPE_PATH, "r+b", buffering=0)
+        handle.close()
+        return True
+    except OSError:
+        return False
 
 
 def send_event(state):
-    if IS_WINDOWS:
-        return _send_via_pipe(state)
-    else:
-        return _send_via_socket(state)
-
-
-def _send_via_pipe(state):
+    """向 Named Pipe 写入事件，PermissionRequest 场景同步等待后端回复。"""
     try:
         pipe = open(PIPE_PATH, "r+b", buffering=0)
         pipe.write(json.dumps(state).encode("utf-8"))
@@ -66,26 +52,6 @@ def _send_via_pipe(state):
             pipe.close()
         return None
     except (OSError, json.JSONDecodeError):
-        return None
-
-
-def _send_via_socket(state):
-    import socket
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(TIMEOUT_SECONDS)
-        sock.connect(SOCKET_PATH)
-        sock.sendall(json.dumps(state).encode("utf-8"))
-
-        if state.get("status") == "waiting_for_approval":
-            response = sock.recv(4096)
-            sock.close()
-            if response:
-                return json.loads(response.decode("utf-8"))
-        else:
-            sock.close()
-        return None
-    except (socket.error, OSError, json.JSONDecodeError):
         return None
 
 
