@@ -11,9 +11,11 @@ import {
 export const useSessionsStore = defineStore("sessions", () => {
   const list = ref<SessionSummary[]>([]);
 
-  const byId = computed(
-    () => new Map(list.value.map((s) => [s.session_id, s] as const)),
-  );
+  const byId = computed<Map<string, SessionSummary>>(() => {
+    const m = new Map<string, SessionSummary>();
+    for (const s of list.value) m.set(s.session_id, s);
+    return m;
+  });
 
   const hasAttention = computed(() => list.value.some((s) => s.needs_attention));
 
