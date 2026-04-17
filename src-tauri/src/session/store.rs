@@ -8,7 +8,7 @@ pub struct SessionStore {
     sessions: HashMap<String, SessionState>,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, specta::Type)]
 pub struct SessionSummary {
     pub session_id: String,
     pub project_name: String,

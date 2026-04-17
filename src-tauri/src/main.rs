@@ -6,6 +6,7 @@ mod hook;
 mod session;
 mod terminal;
 mod sound;
+mod specta_export;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;

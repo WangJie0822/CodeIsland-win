@@ -24,6 +24,9 @@ windows = { version = "0.58", features = [
     "Win32_System_DataExchange",
     "Win32_System_Console",
 ] }
+specta = { version = "2.0.0-rc.22", features = ["serde_json", "chrono"] }
+specta-typescript = "0.0.9"
+tauri-specta = { version = "2.0.0-rc.21", features = ["derive", "typescript"] }
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

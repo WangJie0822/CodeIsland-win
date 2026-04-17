@@ -3,18 +3,21 @@ use crate::app_state::AppState;
 use crate::session::store::SessionSummary;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_sessions(state: State<'_, AppState>) -> Result<Vec<SessionSummary>, String> {
     let store = state.store.lock().await;
     Ok(store.get_summaries())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_session_count(state: State<'_, AppState>) -> Result<usize, String> {
     let store = state.store.lock().await;
     Ok(store.active_count())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn send_to_terminal(
     state: State<'_, AppState>,
     session_id: String,

@@ -3,6 +3,7 @@ use crate::app_state::AppState;
 use crate::hook::protocol::HookResponse;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn approve_permission(
     state: State<'_, AppState>,
     app: AppHandle,
@@ -19,6 +20,7 @@ pub async fn approve_permission(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn deny_permission(
     state: State<'_, AppState>,
     app: AppHandle,

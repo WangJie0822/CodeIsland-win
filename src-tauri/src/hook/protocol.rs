@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Python hook 脚本发来的事件（与 macOS 版 HookEvent 字段对齐）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct HookEvent {
     pub session_id: String,
     #[serde(default)]
@@ -34,7 +34,7 @@ impl HookEvent {
 }
 
 /// 回写给 Python hook 脚本的审批决策
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct HookResponse {
     pub decision: String,
     #[serde(skip_serializing_if = "Option::is_none")]

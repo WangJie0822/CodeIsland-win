@@ -2,7 +2,7 @@ use serde::Serialize;
 use crate::hook::protocol::HookEvent;
 
 /// 权限审批上下文
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 pub struct PermissionContext {
     pub tool_use_id: String,
     pub tool_name: String,
@@ -17,7 +17,7 @@ impl PartialEq for PermissionContext {
 }
 
 /// 会话阶段状态机（与 macOS 版 SessionPhase.swift 对齐）
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
 #[serde(tag = "type", content = "context")]
 pub enum SessionPhase {
     Idle,
