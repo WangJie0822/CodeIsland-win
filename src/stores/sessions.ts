@@ -11,12 +11,6 @@ import {
 export const useSessionsStore = defineStore("sessions", () => {
   const list = ref<SessionSummary[]>([]);
 
-  const byId = computed<Map<string, SessionSummary>>(() => {
-    const m = new Map<string, SessionSummary>();
-    for (const s of list.value) m.set(s.session_id, s);
-    return m;
-  });
-
   const hasAttention = computed(() => list.value.some((s) => s.needs_attention));
 
   const overallStatus = computed<"idle" | "processing" | "attention">(() => {
@@ -49,7 +43,6 @@ export const useSessionsStore = defineStore("sessions", () => {
 
   return {
     list,
-    byId,
     hasAttention,
     overallStatus,
     refresh,
