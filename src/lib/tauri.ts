@@ -25,3 +25,15 @@ export async function invokeSendToTerminal(sessionId: string, text: string): Pro
 export async function onSessionsUpdated(callback: () => void): Promise<UnlistenFn> {
   return listen("sessions-updated", callback);
 }
+
+export async function invokeSetIgnoreCursorEvents(enabled: boolean): Promise<void> {
+  return invoke("set_ignore_cursor_events", { windowLabel: "island", enabled });
+}
+
+export async function invokeSetWindowSize(width: number, height: number): Promise<void> {
+  return invoke("set_window_size", { windowLabel: "island", width, height });
+}
+
+export async function invokeSetWindowPosition(x: number, y: number): Promise<void> {
+  return invoke("set_window_position", { windowLabel: "island", x, y });
+}

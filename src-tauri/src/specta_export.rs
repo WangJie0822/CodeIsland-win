@@ -18,6 +18,9 @@ mod tests {
             commands::approval::deny_permission,
             commands::settings::get_sound_enabled,
             commands::settings::set_sound_enabled,
+            commands::window_control::set_ignore_cursor_events,
+            commands::window_control::set_window_size,
+            commands::window_control::set_window_position,
         ]);
 
         let out = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -41,6 +44,11 @@ mod tests {
         assert!(
             content.contains("approve_permission"),
             "generated.ts 未包含命令: {}",
+            content
+        );
+        assert!(
+            content.contains("set_ignore_cursor_events"),
+            "generated.ts 未包含 set_ignore_cursor_events: {}",
             content
         );
     }

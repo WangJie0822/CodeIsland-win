@@ -141,6 +141,9 @@ fn main() {
             commands::approval::deny_permission,
             commands::settings::get_sound_enabled,
             commands::settings::set_sound_enabled,
+            commands::window_control::set_ignore_cursor_events,
+            commands::window_control::set_window_size,
+            commands::window_control::set_window_position,
         ])
         .run(tauri::generate_context!())
         .expect("启动 Code Island 失败");
