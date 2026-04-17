@@ -1,11 +1,15 @@
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 use log::{info, warn};
 
 pub fn claude_dir() -> PathBuf {
     dirs::home_dir()
-        .expect("无法获取 home 目录")
+        .expect("无法获取 %USERPROFILE%")
         .join(".claude")
+}
+
+pub fn python_candidates() -> &'static [&'static str] {
+    &["py", "python", "python3"]
 }
 
 pub fn install_if_needed(script_content: &[u8]) {
@@ -24,12 +28,6 @@ pub fn install_if_needed(script_content: &[u8]) {
         return;
     }
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&script_path, fs::Permissions::from_mode(0o755));
-    }
-
     info!("[Installer] Hook 脚本已安装: {:?}", script_path);
     update_settings(&settings_path);
 }
@@ -43,9 +41,9 @@ fn update_settings(settings_path: &PathBuf) {
     };
 
     let python = detect_python();
-    let home = dirs::home_dir().expect("无法获取 home 目录");
+    let home = dirs::home_dir().expect("无法获取 %USERPROFILE%");
     let script_path = home.join(".claude").join("hooks").join("codeisland-state.py");
-    let command = format!("{} {}", python, script_path.display());
+    let command = format!("{} \"{}\"", python, script_path.display());
 
     let hook_entry = serde_json::json!([{"type": "command", "command": command}]);
     let hook_entry_timeout = serde_json::json!([{"type": "command", "command": command, "timeout": 86400}]);
@@ -57,7 +55,8 @@ fn update_settings(settings_path: &PathBuf) {
         {"matcher": "manual", "hooks": hook_entry}
     ]);
 
-    let hooks = json.entry("hooks")
+    let hooks = json
+        .entry("hooks")
         .or_insert_with(|| serde_json::json!({}))
         .as_object_mut()
         .expect("hooks 应是 object");
@@ -76,18 +75,22 @@ fn update_settings(settings_path: &PathBuf) {
     ];
 
     for (event_name, config) in events {
-        let has_our_hook = hooks.get(event_name)
+        let has_our_hook = hooks
+            .get(event_name)
             .and_then(|v| v.as_array())
             .map(|entries| {
                 entries.iter().any(|entry| {
-                    entry.get("hooks")
+                    entry
+                        .get("hooks")
                         .and_then(|h| h.as_array())
-                        .map(|hooks| hooks.iter().any(|h| {
-                            h.get("command")
-                                .and_then(|c| c.as_str())
-                                .map(|c| c.contains("codeisland-state.py"))
-                                .unwrap_or(false)
-                        }))
+                        .map(|hooks| {
+                            hooks.iter().any(|h| {
+                                h.get("command")
+                                    .and_then(|c| c.as_str())
+                                    .map(|c| c.contains("codeisland-state.py"))
+                                    .unwrap_or(false)
+                            })
+                        })
                         .unwrap_or(false)
                 })
             })
@@ -113,12 +116,7 @@ fn update_settings(settings_path: &PathBuf) {
 }
 
 fn detect_python() -> String {
-    #[cfg(target_os = "windows")]
-    let candidates = ["python3", "python", "py"];
-    #[cfg(not(target_os = "windows"))]
-    let candidates = ["python3", "python"];
-
-    for candidate in candidates {
+    for candidate in python_candidates() {
         if std::process::Command::new(candidate)
             .arg("--version")
             .stdout(std::process::Stdio::null())
@@ -127,10 +125,10 @@ fn detect_python() -> String {
             .map(|s| s.success())
             .unwrap_or(false)
         {
-            return candidate.to_string();
+            return (*candidate).to_string();
         }
     }
-    "python3".to_string()
+    "py".to_string()
 }
 
 pub fn uninstall() {
@@ -146,14 +144,17 @@ pub fn uninstall() {
                 for (_, value) in hooks.iter_mut() {
                     if let Some(entries) = value.as_array_mut() {
                         entries.retain(|entry| {
-                            !entry.get("hooks")
+                            !entry
+                                .get("hooks")
                                 .and_then(|h| h.as_array())
-                                .map(|hooks| hooks.iter().any(|h| {
-                                    h.get("command")
-                                        .and_then(|c| c.as_str())
-                                        .map(|c| c.contains("codeisland-state.py"))
-                                        .unwrap_or(false)
-                                }))
+                                .map(|hooks| {
+                                    hooks.iter().any(|h| {
+                                        h.get("command")
+                                            .and_then(|c| c.as_str())
+                                            .map(|c| c.contains("codeisland-state.py"))
+                                            .unwrap_or(false)
+                                    })
+                                })
                                 .unwrap_or(false)
                         });
                     }
@@ -166,4 +167,39 @@ pub fn uninstall() {
         }
     }
     info!("[Installer] Hook 已卸载");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_claude_dir_on_windows() {
+        let dir = claude_dir();
+        assert!(dir.ends_with(".claude"), "期待 .claude 结尾: {:?}", dir);
+        let s = dir.to_string_lossy();
+        assert!(
+            s.contains('\\') || s.contains(':'),
+            "期待 Windows 路径分隔符: {}",
+            s
+        );
+    }
+
+    #[test]
+    fn test_python_candidates_are_windows_only() {
+        let candidates = python_candidates();
+        assert_eq!(candidates, &["py", "python", "python3"]);
+    }
+
+    #[test]
+    fn test_installer_is_windows_only() {
+        // 避免 include_str! 自引用——把 needle 拆成两段字面量
+        let src = include_str!("installer.rs");
+        let unix_cfg = concat!("cfg(", "unix)");
+        let permissions_ext = concat!("Permissions", "Ext");
+        let cross_cfg = concat!("cfg(not(", "target_os");
+        assert!(!src.contains(unix_cfg), "unix cfg 残留");
+        assert!(!src.contains(permissions_ext), "unix 权限代码残留");
+        assert!(!src.contains(cross_cfg), "跨平台 cfg 残留");
+    }
 }
