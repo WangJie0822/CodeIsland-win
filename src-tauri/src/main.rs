@@ -1,12 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod app_state;
+mod autostart;
+mod buddy;
 mod commands;
 mod hook;
+mod presets;
+mod screens;
 mod session;
-mod terminal;
+mod settings;
 mod sound;
 mod specta_export;
+mod terminal;
+mod usage;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -142,9 +148,22 @@ fn main() {
             commands::approval::deny_permission,
             commands::settings::get_sound_enabled,
             commands::settings::set_sound_enabled,
+            commands::settings::get_settings,
+            commands::settings::update_settings,
             commands::window_control::set_ignore_cursor_events,
             commands::window_control::set_window_size,
             commands::window_control::set_window_position,
+            commands::autostart::cmd_get_autostart,
+            commands::autostart::cmd_set_autostart,
+            commands::screens::get_screens,
+            commands::buddy::get_buddy,
+            commands::buddy::switch_buddy,
+            commands::usage::get_usage_report,
+            commands::usage::refresh_usage_report,
+            commands::presets::list_presets,
+            commands::presets::save_preset,
+            commands::presets::delete_preset,
+            commands::presets::launch_preset,
         ])
         .run(tauri::generate_context!())
         .expect("启动 Code Island 失败");

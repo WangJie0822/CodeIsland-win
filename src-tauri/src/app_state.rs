@@ -11,6 +11,11 @@ use crate::sound::manager::SoundManager;
 #[derive(Debug, Clone)]
 pub enum AppEvent {
     SessionsUpdated,
+    SettingsChanged,
+    BuddyUnlocked,
+    UsageUpdated,
+    PresetsUpdated,
+    NotchPositionChanged,
 }
 
 impl AppEvent {
@@ -18,6 +23,11 @@ impl AppEvent {
     pub fn topic(&self) -> &'static str {
         match self {
             AppEvent::SessionsUpdated => "codeisland:sessions:updated",
+            AppEvent::SettingsChanged => "codeisland:settings:changed",
+            AppEvent::BuddyUnlocked => "codeisland:buddy:unlocked",
+            AppEvent::UsageUpdated => "codeisland:usage:updated",
+            AppEvent::PresetsUpdated => "codeisland:presets:updated",
+            AppEvent::NotchPositionChanged => "codeisland:notch:position-changed",
         }
     }
 }
