@@ -30,3 +30,6 @@ tauri-specta = { version = "2.0.0-rc.21", features = ["derive", "typescript"] }
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+
+[dev-dependencies]
+tempfile = "3"
