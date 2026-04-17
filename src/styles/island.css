@@ -1,40 +1,15 @@
-.island {
-  position: fixed;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-primary);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-radius 0.3s ease;
-  overflow: hidden;
-  cursor: default;
-}
-
-.island.collapsed { width: 220px; height: 36px; }
 .island-collapsed {
   display: flex; align-items: center; gap: 8px;
-  padding: 0 16px; height: 36px; white-space: nowrap;
+  padding: 0 16px; height: 32px; white-space: nowrap;
+  color: var(--text-primary);
 }
-.island.expanded { width: 380px; height: auto; max-height: 80vh; border-radius: var(--radius); }
-.island-expanded { padding: 8px; }
+.island-expanded { padding: 8px; color: var(--text-primary); }
 .expanded-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 12px 4px; cursor: grab;
 }
 .expanded-header:active { cursor: grabbing; }
 .header-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.island.alert { animation: pulse-glow 1.5s ease-in-out infinite; }
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3); }
-  50% { box-shadow: 0 4px 32px rgba(255, 152, 0, 0.4), 0 0 16px rgba(255, 152, 0, 0.2); }
-}
 
 .status-dot {
   width: 8px; height: 8px; border-radius: 50%;
