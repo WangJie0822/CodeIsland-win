@@ -1,12 +1,14 @@
-import { store } from "./store";
-import { onSessionsUpdated } from "./lib/events";
-import { initIsland } from "./components/Island";
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import App from "./App.vue";
+import NotchView from "./views/NotchView.vue";
 
-async function init() {
-  console.log("Code Island starting...");
-  initIsland();
-  await store.refresh();
-  await onSessionsUpdated(async () => { await store.refresh(); });
-}
+const pinia = createPinia();
 
-init().catch(console.error);
+const app = createApp({
+  components: { App, NotchView },
+  template: "<App><NotchView /></App>",
+});
+
+app.use(pinia);
+app.mount("#app");

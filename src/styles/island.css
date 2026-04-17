@@ -21,10 +21,8 @@
   display: flex; align-items: center; gap: 8px;
   padding: 0 16px; height: 36px; white-space: nowrap;
 }
-.island.expanded .island-collapsed { display: none; }
 .island.expanded { width: 380px; height: auto; max-height: 80vh; border-radius: var(--radius); }
-.island-expanded { display: none; padding: 8px; }
-.island.expanded .island-expanded { display: block; }
+.island-expanded { padding: 8px; }
 .expanded-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 12px 4px; cursor: grab;
@@ -50,6 +48,7 @@
 
 .session-count { font-size: 12px; font-weight: 500; color: var(--text-primary); }
 .status-label { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
+.session-list { padding: 0 0 8px; max-height: 70vh; overflow-y: auto; }
 
 .session-card {
   padding: 10px 12px; border-radius: var(--radius-sm);

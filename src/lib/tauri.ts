@@ -1,0 +1,27 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { SessionSummary } from "@/types/generated";
+
+export async function invokeGetSessions(): Promise<SessionSummary[]> {
+  return invoke("get_sessions");
+}
+
+export async function invokeGetSessionCount(): Promise<number> {
+  return invoke("get_session_count");
+}
+
+export async function invokeApprovePermission(sessionId: string): Promise<boolean> {
+  return invoke("approve_permission", { sessionId });
+}
+
+export async function invokeDenyPermission(sessionId: string, reason?: string): Promise<boolean> {
+  return invoke("deny_permission", { sessionId, reason });
+}
+
+export async function invokeSendToTerminal(sessionId: string, text: string): Promise<boolean> {
+  return invoke("send_to_terminal", { sessionId, text });
+}
+
+export async function onSessionsUpdated(callback: () => void): Promise<UnlistenFn> {
+  return listen("sessions-updated", callback);
+}
