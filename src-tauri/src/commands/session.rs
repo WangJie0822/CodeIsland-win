@@ -11,9 +11,9 @@ pub async fn get_sessions(state: State<'_, AppState>) -> Result<Vec<SessionSumma
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_session_count(state: State<'_, AppState>) -> Result<usize, String> {
+pub async fn get_session_count(state: State<'_, AppState>) -> Result<u32, String> {
     let store = state.store.lock().await;
-    Ok(store.active_count())
+    Ok(store.active_count() as u32)
 }
 
 #[tauri::command]
