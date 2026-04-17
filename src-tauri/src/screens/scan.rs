@@ -40,7 +40,7 @@ pub fn get_screens(app: &AppHandle) -> Result<Vec<ScreenInfo>, String> {
                 .unwrap_or(idx == 0);
             ScreenInfo {
                 id: idx as i32,
-                name: m.name().unwrap_or_default().to_string(),
+                name: m.name().cloned().unwrap_or_default(),
                 width: size.width,
                 height: size.height,
                 is_primary,
