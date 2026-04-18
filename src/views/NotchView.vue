@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSessionsStore } from "@/stores/sessions";
 import { useNotchStore } from "@/stores/notch";
@@ -11,6 +11,8 @@ import {
 import StatusDot from "@/components/common/StatusDot.vue";
 import SessionCard from "@/components/session-card/SessionCard.vue";
 import NotchShape from "@/components/notch/NotchShape.vue";
+import NotchMenuPopover from "@/components/notch/NotchMenuPopover.vue";
+import { invokeOpenViewWindow } from "@/lib/tauri";
 
 const sessions = useSessionsStore();
 const notch = useNotchStore();
@@ -22,6 +24,25 @@ const sessionCount = computed(() => sessions.list.length);
 const countLabel = computed(
   () => `${sessionCount.value} session${sessionCount.value !== 1 ? "s" : ""}`,
 );
+
+const popoverOpen = ref(false);
+
+function togglePopover(): void {
+  popoverOpen.value = !popoverOpen.value;
+}
+
+async function onOpenView(label: string): Promise<void> {
+  popoverOpen.value = false;
+  try {
+    await invokeOpenViewWindow(label);
+  } catch (e) {
+    console.warn("[notch] 打开窗口失败:", e);
+  }
+}
+
+function onPopoverClose(): void {
+  popoverOpen.value = false;
+}
 
 function hitTest(clientX: number, clientY: number): boolean {
   if (!hitTestEl) return true;
@@ -100,6 +121,15 @@ onUnmounted(() => {
       <div v-else class="island-expanded">
         <div class="expanded-header" data-tauri-drag-region>
           <span class="header-title">Code Island</span>
+          <button
+            class="notch-menu-btn"
+            data-testid="notch-menu-button"
+            type="button"
+            aria-label="更多菜单"
+            @click.stop="togglePopover"
+          >
+            ⋯
+          </button>
           <button class="btn-close" title="隐藏窗口" @click="onCloseClick">×</button>
         </div>
         <div class="session-list">
@@ -114,6 +144,11 @@ onUnmounted(() => {
         </div>
       </div>
     </NotchShape>
+    <NotchMenuPopover
+      v-if="popoverOpen"
+      @open-view="onOpenView"
+      @close="onPopoverClose"
+    />
   </div>
 </template>
 
@@ -123,5 +158,23 @@ onUnmounted(() => {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.notch-menu-btn {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.6));
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.notch-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary, #fff);
 }
 </style>
