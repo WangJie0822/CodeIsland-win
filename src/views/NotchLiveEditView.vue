@@ -4,27 +4,13 @@
  *
  * 提供拖动定位 + 尺寸微调功能。
  * 本视图仅提供 UI；路由挂接由 Stage 2 主会话负责。
- *
- * Stage 2 待办：
- *  - commands/mod.rs 注册 set_window_position
- *  - app_state.rs 添加 AppEvent::NotchPositionChanged { x, y }
- *  - main.rs 订阅并 emit codeisland:notch:position-changed
- *  - NotchView.vue 右上「⋯」按钮挂接本视图入口
- *  - .no-notch-anim .notch-svg path { transition: none; } (全局 CSS)
- *  - generated.ts 补 NotchPosition 类型（当前用本地 interface 代替）
  */
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { availableMonitors, type Monitor } from "@tauri-apps/api/window";
 import { useDragResize } from "@/composables/useDragResize";
 import { EXPANDED } from "@/utils/notch-shape";
-
-// ------- 本地类型（generated.ts 缺 NotchPosition；Stage 2 补全后可删） -------
-interface NotchPosition {
-  x: number;
-  y: number;
-  screen_id: string;
-}
+import type { WindowPosition } from "@/types/generated";
 
 // ------- 状态 -------
 const dragHandleRef = ref<HTMLElement | null>(null);
@@ -126,17 +112,9 @@ async function nudgeX(delta: number) {
 
 // ------- 保存 / 取消 -------
 async function save() {
-  let screenId = "default";
-  try {
-    const monitors = await availableMonitors();
-    if (monitors[0]) screenId = monitors[0].name ?? "default";
-  } catch {
-    /* ignore */
-  }
-  const patch: { notch_position: NotchPosition } = {
-    notch_position: { x: posX.value, y: posY.value, screen_id: screenId },
+  const patch: { notch_position: WindowPosition } = {
+    notch_position: { x: posX.value, y: posY.value },
   };
-  // C agent 提供的 update_settings 命令；签名约定统一，Stage 2 保证可用
   await invoke("update_settings", { patch }).catch((e) =>
     console.error("[live-edit] update_settings failed:", e),
   );

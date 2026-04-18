@@ -207,6 +207,7 @@ fn main() {
             commands::window_control::set_window_size,
             commands::window_control::set_window_position,
             commands::window_control::open_view_window,
+            commands::window_control::get_window_position,
             commands::autostart::cmd_get_autostart,
             commands::autostart::cmd_set_autostart,
             commands::screens::get_screens,

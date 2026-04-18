@@ -1,5 +1,11 @@
 use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager};
 
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, specta::Type)]
+pub struct WindowPosition {
+    pub x: i32,
+    pub y: i32,
+}
+
 pub const KNOWN_WINDOW_LABELS: &[&str] = &[
     "island",
     "settings",
@@ -96,6 +102,22 @@ pub async fn open_view_window(app: tauri::AppHandle, label: String) -> Result<()
     Ok(())
 }
 
+#[tauri::command]
+#[specta::specta]
+pub async fn get_window_position(
+    app: tauri::AppHandle,
+    label: String,
+) -> Result<WindowPosition, String> {
+    validate_window_label(&label)?;
+    let window = app
+        .get_webview_window(&label)
+        .ok_or_else(|| format!("[window] 窗口未创建: {}", label))?;
+    let pos = window
+        .outer_position()
+        .map_err(|e| format!("[window] 读取位置失败: {}", e))?;
+    Ok(WindowPosition { x: pos.x, y: pos.y })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -158,5 +180,12 @@ mod tests {
     #[test]
     fn validate_window_label_rejects_empty() {
         assert!(super::validate_window_label("").is_err());
+    }
+
+    #[test]
+    fn window_position_fields_are_i32() {
+        let pos = super::WindowPosition { x: 100i32, y: 200i32 };
+        assert_eq!(pos.x, 100);
+        assert_eq!(pos.y, 200);
     }
 }

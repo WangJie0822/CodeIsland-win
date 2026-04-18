@@ -58,4 +58,12 @@ mod tests {
         let received = rx.recv().await.unwrap();
         assert_eq!(received.topic(), "codeisland:sessions:updated");
     }
+
+    #[test]
+    fn notch_position_changed_topic() {
+        assert_eq!(
+            AppEvent::NotchPositionChanged.topic(),
+            "codeisland:notch:position-changed"
+        );
+    }
 }

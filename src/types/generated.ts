@@ -92,6 +92,14 @@ async openViewWindow(label: string) : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getWindowPosition(label: string) : Promise<Result<WindowPosition, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_window_position", { label }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -107,6 +115,7 @@ async openViewWindow(label: string) : Promise<Result<null, string>> {
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type SessionSummary = { session_id: string; project_name: string; cwd: string; phase: string; needs_attention: boolean; last_message: string | null; tool_name: string | null; tool_input: JsonValue | null }
+export type WindowPosition = { x: number; y: number }
 
 /** tauri-specta globals **/
 

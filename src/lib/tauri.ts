@@ -45,3 +45,12 @@ export async function invokeOpenViewWindow(label: string): Promise<void> {
     throw new Error(result.error);
   }
 }
+
+export async function invokeGetWindowPosition(label: string): Promise<{ x: number; y: number }> {
+  const { commands } = await import("@/types/generated");
+  const result = await commands.getWindowPosition(label);
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+  return result.data;
+}

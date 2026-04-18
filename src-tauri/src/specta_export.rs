@@ -22,6 +22,7 @@ mod tests {
             commands::window_control::set_window_size,
             commands::window_control::set_window_position,
             commands::window_control::open_view_window,
+            commands::window_control::get_window_position,
         ]);
 
         let out = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
