@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { SessionSummary } from "@/types/generated";
+import type { SessionSummary, WindowPosition } from "@/types/generated";
 
 export async function invokeGetSessions(): Promise<SessionSummary[]> {
   return invoke("get_sessions");
@@ -46,7 +46,7 @@ export async function invokeOpenViewWindow(label: string): Promise<void> {
   }
 }
 
-export async function invokeGetWindowPosition(label: string): Promise<{ x: number; y: number }> {
+export async function invokeGetWindowPosition(label: string): Promise<WindowPosition> {
   const { commands } = await import("@/types/generated");
   const result = await commands.getWindowPosition(label);
   if (result.status === "error") {

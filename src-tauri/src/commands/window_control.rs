@@ -112,10 +112,14 @@ pub async fn get_window_position(
     let window = app
         .get_webview_window(&label)
         .ok_or_else(|| format!("[window] 窗口未创建: {}", label))?;
-    let pos = window
+    let physical = window
         .outer_position()
         .map_err(|e| format!("[window] 读取位置失败: {}", e))?;
-    Ok(WindowPosition { x: pos.x, y: pos.y })
+    let scale = window
+        .scale_factor()
+        .map_err(|e| format!("[window] 读取 DPI scale 失败: {}", e))?;
+    let logical = physical.to_logical::<i32>(scale);
+    Ok(WindowPosition { x: logical.x, y: logical.y })
 }
 
 #[cfg(test)]
