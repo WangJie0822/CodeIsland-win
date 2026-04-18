@@ -1,14 +1,38 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App.vue";
-import NotchView from "./views/NotchView.vue";
+import { router } from "./router";
 
-const pinia = createPinia();
+const KNOWN_LABELS = new Set([
+  "island",
+  "settings",
+  "buddy",
+  "usage",
+  "presets",
+  "notch-live-edit",
+]);
 
-const app = createApp({
-  components: { App, NotchView },
-  template: "<App><NotchView /></App>",
-});
+export function resolveRoutePath(label: string): string {
+  if (!label || !KNOWN_LABELS.has(label)) {
+    return "/island";
+  }
+  return `/${label}`;
+}
 
-app.use(pinia);
-app.mount("#app");
+async function bootstrap(): Promise<void> {
+  const win = getCurrentWindow();
+  const label = win?.label ?? "";
+  const path = resolveRoutePath(label);
+
+  const app = createApp(App);
+  app.use(createPinia());
+  app.use(router);
+  await router.push(path);
+  app.mount("#app");
+}
+
+// 仅在非测试环境下自动启动
+if (import.meta.env.MODE !== "test") {
+  void bootstrap();
+}
