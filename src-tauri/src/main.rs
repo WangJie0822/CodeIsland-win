@@ -78,8 +78,17 @@ fn main() {
             let app_handle = app.handle().clone();
             let mut event_rx = event_tx.subscribe();
             tauri::async_runtime::spawn(async move {
-                while let Ok(event) = event_rx.recv().await {
-                    let _ = app_handle.emit(event.topic(), ());
+                loop {
+                    let action = app_state::handle_event_bus_recv(event_rx.recv().await);
+                    match action {
+                        app_state::EventBusAction::Emit(topic) => {
+                            let _ = app_handle.emit(topic, ());
+                        }
+                        app_state::EventBusAction::Warn(n) => {
+                            log::warn!("[event-bus] 订阅滞后，丢失 {} 条事件", n);
+                        }
+                        app_state::EventBusAction::Break => break,
+                    }
                 }
             });
 

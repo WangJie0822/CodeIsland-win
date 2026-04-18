@@ -32,6 +32,27 @@ impl AppEvent {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum EventBusAction {
+    Emit(&'static str),
+    Warn(u64),
+    Break,
+}
+
+/// 把 broadcast recv 的结果分派为具体动作。
+///
+/// 纯函数方便测试；主循环在 main.rs 中按返回值执行副作用。
+pub fn handle_event_bus_recv(
+    result: Result<AppEvent, tokio::sync::broadcast::error::RecvError>,
+) -> EventBusAction {
+    use tokio::sync::broadcast::error::RecvError;
+    match result {
+        Ok(event) => EventBusAction::Emit(event.topic()),
+        Err(RecvError::Lagged(n)) => EventBusAction::Warn(n),
+        Err(RecvError::Closed) => EventBusAction::Break,
+    }
+}
+
 pub struct AppState {
     pub store: Arc<Mutex<SessionStore>>,
     pub hook_server: Arc<HookServer>,
@@ -65,5 +86,25 @@ mod tests {
             AppEvent::NotchPositionChanged.topic(),
             "codeisland:notch:position-changed"
         );
+    }
+
+    use tokio::sync::broadcast::error::RecvError;
+
+    #[test]
+    fn handle_event_bus_recv_ok_returns_emit() {
+        let result = super::handle_event_bus_recv(Ok(AppEvent::SessionsUpdated));
+        assert!(matches!(result, super::EventBusAction::Emit("codeisland:sessions:updated")));
+    }
+
+    #[test]
+    fn handle_event_bus_recv_lagged_returns_warn() {
+        let result = super::handle_event_bus_recv(Err(RecvError::Lagged(3)));
+        assert!(matches!(result, super::EventBusAction::Warn(3)));
+    }
+
+    #[test]
+    fn handle_event_bus_recv_closed_returns_break() {
+        let result = super::handle_event_bus_recv(Err(RecvError::Closed));
+        assert!(matches!(result, super::EventBusAction::Break));
     }
 }
