@@ -25,10 +25,11 @@ async function bootstrap(): Promise<void> {
   const label = win?.label ?? "";
   const path = resolveRoutePath(label);
 
+  await router.push(path);
+
   const app = createApp(App);
   app.use(createPinia());
   app.use(router);
-  await router.push(path);
   app.mount("#app");
 }
 

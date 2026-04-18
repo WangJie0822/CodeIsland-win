@@ -1,7 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { router } from "./index";
 
 describe("router", () => {
+  beforeEach(async () => {
+    await router.push("/island");
+  });
+
   it("/unknown-path 重定向到 /island", async () => {
     await router.push("/unknown-path");
     expect(router.currentRoute.value.path).toBe("/island");
