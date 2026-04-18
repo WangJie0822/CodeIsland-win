@@ -87,10 +87,15 @@ fn main() {
                 if let Ok(Some(monitor)) = window.current_monitor() {
                     let screen_size = monitor.size();
                     let scale = monitor.scale_factor();
-                    let window_width = 400.0;
-                    let x = (screen_size.width as f64 / scale - window_width) / 2.0;
+                    let (x, y) = commands::window_control::center_island_window(
+                        screen_size.width as f64,
+                        screen_size.height as f64,
+                        scale,
+                        220.0,
+                        32.0,
+                    );
                     let _ = window.set_position(tauri::Position::Logical(
-                        tauri::LogicalPosition::new(x, 0.0),
+                        tauri::LogicalPosition::new(x, y),
                     ));
                 }
             }

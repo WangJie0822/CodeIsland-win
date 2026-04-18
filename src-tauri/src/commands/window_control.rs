@@ -23,6 +23,24 @@ pub fn validate_window_label(label: &str) -> Result<(), String> {
     }
 }
 
+/// 计算 island 窗口顶部居中坐标（逻辑像素）。
+///
+/// `screen_w` / `screen_h` 是物理像素宽高；`scale` 是 monitor.scale_factor；
+/// `win_w` / `win_h` 是逻辑尺寸。返回 (x, y) 逻辑坐标，y=0 固定顶部。
+pub fn center_island_window(
+    screen_w: f64,
+    screen_h: f64,
+    scale: f64,
+    win_w: f64,
+    win_h: f64,
+) -> (f64, f64) {
+    let _ = screen_h;
+    let _ = win_h;
+    let logical_w = screen_w / scale;
+    let x = (logical_w - win_w) / 2.0;
+    (x, 0.0)
+}
+
 fn validate_size(width: f64, height: f64) -> Result<(), String> {
     if !(width.is_finite() && height.is_finite()) || width <= 0.0 || height <= 0.0 {
         return Err(format!("尺寸非法: {}x{}", width, height));
@@ -191,5 +209,25 @@ mod tests {
         let pos = super::WindowPosition { x: 100i32, y: 200i32 };
         assert_eq!(pos.x, 100);
         assert_eq!(pos.y, 200);
+    }
+
+    #[test]
+    fn center_island_window_1920x1080_scale_1() {
+        let (x, y) = super::center_island_window(1920.0, 1080.0, 1.0, 220.0, 32.0);
+        assert_eq!(x, 850.0);
+        assert_eq!(y, 0.0);
+    }
+
+    #[test]
+    fn center_island_window_2560x1440_scale_1_25() {
+        let (x, y) = super::center_island_window(2560.0, 1440.0, 1.25, 220.0, 32.0);
+        assert_eq!(x, 914.0);
+        assert_eq!(y, 0.0);
+    }
+
+    #[test]
+    fn center_island_window_uses_physical_width_divided_by_scale() {
+        let (x, _) = super::center_island_window(3840.0, 2160.0, 2.0, 220.0, 32.0);
+        assert_eq!(x, 850.0);
     }
 }

@@ -91,7 +91,6 @@ watch(
 
 onMounted(async () => {
   notch.setExpanded(false);
-  await invokeSetWindowSize(notch.geometry.width, notch.geometry.height);
   await invokeSetIgnoreCursorEvents(true);
 
   hitTestEl = document.querySelector<SVGPathElement>(".notch-svg path");
