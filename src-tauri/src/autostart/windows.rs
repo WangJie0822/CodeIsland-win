@@ -37,7 +37,10 @@ pub(crate) fn get_autostart_inner(value_name: &str) -> Result<bool, String> {
             &mut hkey,
         );
         if open_status.is_err() {
-            return Ok(false);
+            if open_status.0 as u32 == ERROR_FILE_NOT_FOUND.0 {
+                return Ok(false);
+            }
+            return Err(format!("[autostart] RegOpenKeyExW: {:?}", open_status));
         }
 
         let value_hstr = HSTRING::from(value_name);
@@ -91,15 +94,18 @@ pub(crate) fn set_autostart_inner(value_name: &str, enabled: bool) -> Result<boo
             // SAFETY: HSTRING::as_wide 返回的切片生命周期由 data_hstr 持有，此 unsafe 块内成立
             let data_bytes: &[u8] = std::slice::from_raw_parts(byte_ptr, byte_count);
 
-            RegSetValueExW(
+            let set_status = RegSetValueExW(
                 hkey,
                 PCWSTR::from_raw(value_hstr.as_ptr()),
                 0,
                 REG_SZ,
                 Some(data_bytes),
-            )
-            .map(|_| true)
-            .map_err(|e| format!("[autostart] RegSetValueExW: {:?}", e))
+            );
+            if set_status.is_ok() {
+                Ok(true)
+            } else {
+                Err(format!("[autostart] RegSetValueExW: {:?}", set_status))
+            }
         } else {
             let status = RegDeleteValueW(hkey, PCWSTR::from_raw(value_hstr.as_ptr()));
             if status.is_ok() || status.0 as u32 == ERROR_FILE_NOT_FOUND.0 {
