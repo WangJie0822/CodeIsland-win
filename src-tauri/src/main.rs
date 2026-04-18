@@ -17,7 +17,7 @@ mod usage;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tauri::{Emitter, Manager};
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::image::Image;
 
@@ -108,8 +108,24 @@ fn main() {
                 }
             }
 
-            let show_item =
-                MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
+            let show_island =
+                MenuItem::with_id(app, "show-island", "显示主刘海", true, None::<&str>)?;
+            let sep1 = PredefinedMenuItem::separator(app)?;
+            let open_settings =
+                MenuItem::with_id(app, "open-settings", "偏好设置", true, None::<&str>)?;
+            let open_buddy = MenuItem::with_id(app, "open-buddy", "伙伴", true, None::<&str>)?;
+            let open_usage =
+                MenuItem::with_id(app, "open-usage", "用量报告", true, None::<&str>)?;
+            let open_presets =
+                MenuItem::with_id(app, "open-presets", "启动预设", true, None::<&str>)?;
+            let open_live_edit = MenuItem::with_id(
+                app,
+                "open-notch-live-edit",
+                "调整刘海位置",
+                true,
+                None::<&str>,
+            )?;
+            let sep2 = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(
                 app,
                 "quit",
@@ -117,7 +133,20 @@ fn main() {
                 true,
                 None::<&str>,
             )?;
-            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+            let menu = Menu::with_items(
+                app,
+                &[
+                    &show_island,
+                    &sep1,
+                    &open_settings,
+                    &open_buddy,
+                    &open_usage,
+                    &open_presets,
+                    &open_live_edit,
+                    &sep2,
+                    &quit_item,
+                ],
+            )?;
 
             let tray_icon = Image::from_bytes(include_bytes!("../icons/32x32.png"))
                 .expect("无法加载托盘图标");
@@ -126,18 +155,29 @@ fn main() {
                 .icon(tray_icon)
                 .tooltip("Code Island")
                 .menu(&menu)
-                .on_menu_event(move |app, event| match event.id.as_ref() {
-                    "show" => {
-                        if let Some(window) = app.get_webview_window("island") {
+                .on_menu_event(move |app, event| {
+                    fn show_window(app: &tauri::AppHandle, label: &str) {
+                        if let Some(window) = app.get_webview_window(label) {
                             let _ = window.show();
                             let _ = window.set_focus();
+                        } else {
+                            log::warn!("[tray] 窗口不存在: {}", label);
                         }
                     }
-                    "quit" => {
-                        hook::installer::uninstall();
-                        app.exit(0);
+
+                    match event.id.as_ref() {
+                        "show-island" => show_window(app, "island"),
+                        "open-settings" => show_window(app, "settings"),
+                        "open-buddy" => show_window(app, "buddy"),
+                        "open-usage" => show_window(app, "usage"),
+                        "open-presets" => show_window(app, "presets"),
+                        "open-notch-live-edit" => show_window(app, "notch-live-edit"),
+                        "quit" => {
+                            hook::installer::uninstall();
+                            app.exit(0);
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
