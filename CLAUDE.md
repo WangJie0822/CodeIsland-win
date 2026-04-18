@@ -93,6 +93,24 @@ Vue 3 `<script setup>` + Pinia 单例 store。入口 `main.ts` 挂载 `App.vue` 
 - 启动时顶部居中定位，支持拖拽（`data-tauri-drag-region`）
 - 通过 `set_ignore_cursor_events` 实现 SVG path 外区域鼠标穿透
 
+## specta 类型导出注意事项
+
+`src/types/generated.ts` 由 `cargo test specta_export::tests::generate_typescript_bindings` 自动生成。向 Tauri command / 共享 struct 写代码时避开以下四类签名，否则 CI 会挂在 `cargo test` 或 `vue-tsc --noEmit` 阶段：
+
+1. **Runtime 泛型**：`#[specta::specta]` 的命令函数**不可带 `<R: Runtime>` 泛型**，`collect_commands!` 无法推断类型（E0283）。用默认 `AppHandle`（`Wry`）即可；validator 若需单测可抽为纯函数
+2. **BigInt 类型**：返回 `usize / u64 / i64` 触发 `BigIntForbidden`（TS 默认禁 bigint）。对外 API 明确收敛为 `u32 / i32 / f64`，用 `as u32` 显式转换
+3. **`Option<serde_json::Value>` 字段**：specta 会生成递归 `JsonValue` 类型，下游 TS 消费端若用 `Map<K, Self>` 或 `Record<string, unknown>` prop 会触发 TS2589 深度实例化。消费端改用 `unknown`（自己断言）或显式 `new Map<K, V>()` 构造
+4. **跨 feature 的 Rust stdlib 约束**：`Option<&String>` 不满足 `T: Default`，需 `.cloned().unwrap_or_default()`
+
+详见 [[CodeIsland-win Stage 1-2 整合与 CI 收敛经验]]（Vault）。
+
 ## CI
 
-GitHub Actions `build-windows.yml` 仅在 Windows 上运行：`cargo test` → `npm run test` → `npm run build` → `tauri build`，上传 exe / msi / nsis 产物。
+GitHub Actions `build-windows.yml` 仅在 Windows 上运行：`npm ci` → `npx tauri icon` → `cargo test`（含 specta 生成 `src/types/generated.ts`） → 上传 `generated-ts` artifact → `npm run test`（Vitest） → `npm run build`（`vue-tsc --noEmit` + `vite build`） → `npx tauri build`（Rust release build + 打包产物），上传 `CodeIsland-win-exe` / `msi` / `nsis` 产物。
+
+Mac 本地若需更新 `src/types/generated.ts`（避免与 CI 漂移）：
+
+```bash
+gh run download <latest-green-run-id> -n generated-ts -D /tmp/gts
+cp /tmp/gts/generated.ts src/types/generated.ts
+```
