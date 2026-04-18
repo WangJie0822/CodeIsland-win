@@ -1,100 +1,143 @@
-/// Windows 登录自启动管理。
-///
-/// # TODO (Stage 2)
-///
-/// 当前为占位实现，仅返回 `Ok(())` / `Ok(false)`。
-///
-/// 真实实现需要在 `Cargo.toml` 中启用以下任一依赖之后替换：
-///   - `winreg = "0.52"` crate（推荐，API 简洁）
-///   - 或为 `windows` crate 启用 `Win32_System_Registry` feature
-///
-/// 真实实现应读写注册表键：
-///   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-///   值名：`CodeIsland`，值：可执行文件路径（含参数）
+//! autostart — 通过 HKCU\Software\Microsoft\Windows\CurrentVersion\Run 实现开机启动。
+//!
+//! 使用 `windows` crate 的 `Win32_System_Registry` feature（无需新增 crate）。
+//!
+//! 公开 API 硬编码 VALUE_NAME = "CodeIsland"；内部 inner 版本接受 value_name 参数，
+//! 便于单测使用临时键名做 roundtrip。
 
-/// 注册表键名。
-const REG_VALUE_NAME: &str = "CodeIsland";
+use windows::core::{HSTRING, PCWSTR};
+use windows::Win32::Foundation::ERROR_FILE_NOT_FOUND;
+use windows::Win32::System::Registry::{
+    RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegOpenKeyExW, RegQueryValueExW,
+    RegSetValueExW, HKEY, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, REG_OPTION_NON_VOLATILE,
+    REG_SZ,
+};
 
-/// 查询当前用户是否已配置登录自启动。
-///
-/// # Returns
-/// `Ok(true)` 若已启用，`Ok(false)` 若未启用。
-///
-/// # Errors
-/// 格式 `"[registry] <原因>"`。
+const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+const VALUE_NAME: &str = "CodeIsland";
+
 pub fn get_autostart() -> Result<bool, String> {
-    // TODO (Stage 2): 替换为真实 winreg 读取
-    // 示例（winreg crate）：
-    // ```
-    // use winreg::enums::*;
-    // use winreg::RegKey;
-    // let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    // let run = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
-    //     .map_err(|e| format!("[registry] 打开注册表键失败: {}", e))?;
-    // let val: String = run.get_value(REG_VALUE_NAME)
-    //     .unwrap_or_default();
-    // Ok(!val.is_empty())
-    // ```
-    log::debug!(
-        "[autostart] get_autostart 占位实现（REG_VALUE_NAME={}），返回 false",
-        REG_VALUE_NAME
-    );
-    Ok(false)
+    get_autostart_inner(VALUE_NAME)
 }
 
-/// 设置或清除登录自启动注册表项。
-///
-/// - `enabled = true`：写入当前可执行文件路径到注册表
-/// - `enabled = false`：删除注册表值
-///
-/// # Returns
-/// `Ok(enabled)`，反映操作后的状态。
-///
-/// # Errors
-/// 格式 `"[registry] <原因>"`。
 pub fn set_autostart(enabled: bool) -> Result<bool, String> {
-    // TODO (Stage 2): 替换为真实 winreg 写入/删除
-    // 示例（winreg crate）：
-    // ```
-    // use winreg::enums::*;
-    // use winreg::RegKey;
-    // let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    // let (run, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
-    //     .map_err(|e| format!("[registry] 创建注册表键失败: {}", e))?;
-    // if enabled {
-    //     let exe = std::env::current_exe()
-    //         .map_err(|e| format!("[registry] 获取可执行路径失败: {}", e))?;
-    //     run.set_value(REG_VALUE_NAME, &exe.to_string_lossy().as_ref())
-    //         .map_err(|e| format!("[registry] 写入注册表失败: {}", e))?;
-    // } else {
-    //     run.delete_value(REG_VALUE_NAME)
-    //         .map_err(|e| format!("[registry] 删除注册表值失败: {}", e))?;
-    // }
-    // Ok(enabled)
-    // ```
-    log::debug!(
-        "[autostart] set_autostart({}) 占位实现，实际未写入注册表",
-        enabled
-    );
-    Ok(enabled)
+    set_autostart_inner(VALUE_NAME, enabled)
 }
 
-#[cfg(test)]
+/// 读取 HKCU Run 子键中某 value_name 是否存在。不存在时返回 Ok(false)。
+pub(crate) fn get_autostart_inner(value_name: &str) -> Result<bool, String> {
+    unsafe {
+        let subkey = HSTRING::from(RUN_KEY);
+        let mut hkey = HKEY::default();
+        let open_status = RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            PCWSTR::from_raw(subkey.as_ptr()),
+            0,
+            KEY_READ,
+            &mut hkey,
+        );
+        if open_status.is_err() {
+            return Ok(false);
+        }
+
+        let value_hstr = HSTRING::from(value_name);
+        let query_status = RegQueryValueExW(
+            hkey,
+            PCWSTR::from_raw(value_hstr.as_ptr()),
+            None,
+            None,
+            None,
+            None,
+        );
+        let _ = RegCloseKey(hkey);
+        Ok(query_status.is_ok())
+    }
+}
+
+/// 写入或删除 HKCU Run 子键的某 value_name。enabled=true 写 exe 绝对路径；false 删除。
+pub(crate) fn set_autostart_inner(value_name: &str, enabled: bool) -> Result<bool, String> {
+    let exe = std::env::current_exe()
+        .map_err(|e| format!("[autostart] current_exe: {}", e))?;
+    let exe_str = exe
+        .to_str()
+        .ok_or_else(|| "[autostart] exe 路径非 UTF-8".to_string())?;
+
+    unsafe {
+        let subkey = HSTRING::from(RUN_KEY);
+        let mut hkey = HKEY::default();
+        let create_status = RegCreateKeyExW(
+            HKEY_CURRENT_USER,
+            PCWSTR::from_raw(subkey.as_ptr()),
+            0,
+            PCWSTR::null(),
+            REG_OPTION_NON_VOLATILE,
+            KEY_READ | KEY_WRITE,
+            None,
+            &mut hkey,
+            None,
+        );
+        if create_status.is_err() {
+            return Err(format!("[autostart] RegCreateKeyExW: {:?}", create_status));
+        }
+
+        let value_hstr = HSTRING::from(value_name);
+        let result = if enabled {
+            // REG_SZ 写 UTF-16 字符串 + null terminator
+            let data_hstr = HSTRING::from(exe_str);
+            let data_u16 = data_hstr.as_wide();
+            // UTF-16 字节数 = (len + 1) * 2（含 null terminator）
+            let byte_count = (data_u16.len() + 1) * 2;
+            let byte_ptr = data_u16.as_ptr() as *const u8;
+            // SAFETY: HSTRING::as_wide 返回的切片生命周期由 data_hstr 持有，此 unsafe 块内成立
+            let data_bytes: &[u8] = std::slice::from_raw_parts(byte_ptr, byte_count);
+
+            RegSetValueExW(
+                hkey,
+                PCWSTR::from_raw(value_hstr.as_ptr()),
+                0,
+                REG_SZ,
+                Some(data_bytes),
+            )
+            .map(|_| true)
+            .map_err(|e| format!("[autostart] RegSetValueExW: {:?}", e))
+        } else {
+            let status = RegDeleteValueW(hkey, PCWSTR::from_raw(value_hstr.as_ptr()));
+            if status.is_ok() || status.0 as u32 == ERROR_FILE_NOT_FOUND.0 {
+                Ok(false)
+            } else {
+                Err(format!("[autostart] RegDeleteValueW: {:?}", status))
+            }
+        };
+
+        let _ = RegCloseKey(hkey);
+        result
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
 mod tests {
     use super::*;
 
-    /// 占位测试：验证函数签名和错误格式正确（不依赖真实注册表）。
-    /// Stage 2 替换真实实现后，需补充集成测试。
     #[test]
-    fn get_autostart_placeholder_returns_false() {
-        let result = get_autostart();
-        // 占位实现应成功返回 false
-        assert_eq!(result, Ok(false));
-    }
+    fn roundtrip_set_get_delete() {
+        let pid = std::process::id();
+        let test_value_name = format!("CodeIsland-test-{}", pid);
 
-    #[test]
-    fn set_autostart_placeholder_echoes_input() {
-        assert_eq!(set_autostart(true), Ok(true));
-        assert_eq!(set_autostart(false), Ok(false));
+        // 初始：不存在
+        let initial = get_autostart_inner(&test_value_name).expect("get before set");
+        assert!(!initial, "test value should not exist before set");
+
+        // 写入
+        set_autostart_inner(&test_value_name, true).expect("set true");
+        let after_set = get_autostart_inner(&test_value_name).expect("get after set");
+        assert!(after_set, "test value should exist after set true");
+
+        // 删除
+        set_autostart_inner(&test_value_name, false).expect("set false");
+        let after_del = get_autostart_inner(&test_value_name).expect("get after del");
+        assert!(!after_del, "test value should not exist after set false");
+
+        // 幂等删除
+        set_autostart_inner(&test_value_name, false).expect("set false again (idempotent)");
     }
 }
