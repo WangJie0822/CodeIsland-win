@@ -122,6 +122,7 @@ onUnmounted(() => {
         <div class="expanded-header" data-tauri-drag-region>
           <span class="header-title">Code Island</span>
           <button
+            v-if="!popoverOpen"
             class="notch-menu-btn"
             data-testid="notch-menu-button"
             type="button"

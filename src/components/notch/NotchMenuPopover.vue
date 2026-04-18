@@ -32,13 +32,27 @@ function onDocClick(e: MouseEvent): void {
   }
 }
 
+// 追踪 setTimeout 与挂载状态，避免快速 mount→unmount 导致监听器泄漏
+let timerId: ReturnType<typeof setTimeout> | null = null;
+let isMounted = false;
+
 onMounted(() => {
-  setTimeout(() => {
-    document.addEventListener("click", onDocClick, true);
+  isMounted = true;
+  timerId = setTimeout(() => {
+    // 回调执行前若已卸载，则不绑定监听器
+    if (isMounted) {
+      document.addEventListener("click", onDocClick, true);
+    }
   }, 0);
 });
 
 onUnmounted(() => {
+  isMounted = false;
+  if (timerId !== null) {
+    clearTimeout(timerId);
+    timerId = null;
+  }
+  // 始终尝试 remove，即便未 add 也无害
   document.removeEventListener("click", onDocClick, true);
 });
 </script>
