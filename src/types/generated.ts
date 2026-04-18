@@ -84,6 +84,14 @@ async setWindowPosition(windowLabel: string, x: number, y: number) : Promise<Res
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async openViewWindow(label: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_view_window", { label }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

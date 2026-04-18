@@ -37,3 +37,11 @@ export async function invokeSetWindowSize(width: number, height: number): Promis
 export async function invokeSetWindowPosition(x: number, y: number): Promise<void> {
   return invoke("set_window_position", { windowLabel: "island", x, y });
 }
+
+export async function invokeOpenViewWindow(label: string): Promise<void> {
+  const { commands } = await import("@/types/generated");
+  const result = await commands.openViewWindow(label);
+  if (result.status === "error") {
+    throw new Error(result.error);
+  }
+}

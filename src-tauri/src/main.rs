@@ -95,6 +95,19 @@ fn main() {
                 }
             }
 
+            // Stage 3: 为 5 个非 island 窗口注册 close_requested → hide()，保留窗口实例
+            for label in &["settings", "buddy", "usage", "presets", "notch-live-edit"] {
+                if let Some(window) = app.get_webview_window(label) {
+                    let w = window.clone();
+                    window.on_window_event(move |event| {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            api.prevent_close();
+                            let _ = w.hide();
+                        }
+                    });
+                }
+            }
+
             let show_item =
                 MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(
@@ -153,6 +166,7 @@ fn main() {
             commands::window_control::set_ignore_cursor_events,
             commands::window_control::set_window_size,
             commands::window_control::set_window_position,
+            commands::window_control::open_view_window,
             commands::autostart::cmd_get_autostart,
             commands::autostart::cmd_set_autostart,
             commands::screens::get_screens,

@@ -21,6 +21,7 @@ mod tests {
             commands::window_control::set_ignore_cursor_events,
             commands::window_control::set_window_size,
             commands::window_control::set_window_position,
+            commands::window_control::open_view_window,
         ]);
 
         let out = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
